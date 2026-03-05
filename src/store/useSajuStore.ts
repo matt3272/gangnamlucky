@@ -10,12 +10,14 @@ import { calculateSaju } from '../services/saju/calculator';
 const STORAGE_KEY = '@saju_history';
 const PROFILES_KEY = '@saju_profiles';
 const ACTIVE_PROFILE_KEY = '@saju_active_profile';
+const MBTI_KEY = '@user_mbti';
 
 export interface ProfileEntry {
   id: string;
   sajuData: SajuData;
   birthInfo: BirthInfo;
   color?: string;
+  mbti?: string | null;
 }
 
 interface SajuStore {
@@ -25,6 +27,9 @@ interface SajuStore {
 
   // 현재 사주 데이터
   currentSaju: SajuData | null;
+
+  // MBTI 결과
+  userMbti: string | null;
 
   // 사주 기록
   history: SajuData[];
@@ -70,6 +75,10 @@ interface SajuStore {
 
   // 현재 사주 설정
   setCurrentSaju: (saju: SajuData | null) => void;
+
+  // MBTI 설정 / 불러오기
+  setUserMbti: (mbti: string | null) => Promise<void>;
+  loadUserMbti: () => Promise<void>;
 }
 
 function restoreSajuDates(raw: any): SajuData {
@@ -94,6 +103,7 @@ export const useSajuStore = create<SajuStore>((set, get) => ({
   profiles: [],
   activeProfileId: null,
   currentSaju: null,
+  userMbti: null,
   history: [],
   isLoading: false,
 
@@ -150,7 +160,9 @@ export const useSajuStore = create<SajuStore>((set, get) => ({
   },
 
   setActiveProfile: async (profileId: string) => {
-    set({ activeProfileId: profileId });
+    const { profiles } = get();
+    const profile = profiles.find((p) => p.id === profileId);
+    set({ activeProfileId: profileId, userMbti: profile?.mbti ?? null });
     await AsyncStorage.setItem(ACTIVE_PROFILE_KEY, profileId);
   },
 
@@ -167,9 +179,12 @@ export const useSajuStore = create<SajuStore>((set, get) => ({
           ...entry,
           sajuData: restoreSajuDates(entry.sajuData),
         }));
+        const resolvedActiveId = activeId ?? restored[0]?.id ?? null;
+        const activeEntry = restored.find((p) => p.id === resolvedActiveId);
         set({
           profiles: restored,
-          activeProfileId: activeId ?? restored[0]?.id ?? null,
+          activeProfileId: resolvedActiveId,
+          userMbti: activeEntry?.mbti ?? null,
         });
       } else {
         // 마이그레이션: 기존 단일 프로필 → 멀티 프로필
@@ -240,4 +255,47 @@ export const useSajuStore = create<SajuStore>((set, get) => ({
   },
 
   setCurrentSaju: (saju) => set({ currentSaju: saju }),
+
+  setUserMbti: async (mbti) => {
+    const { profiles, activeProfileId } = get();
+    set({ userMbti: mbti });
+    // 활성 프로필에 MBTI 저장
+    if (activeProfileId) {
+      const updated = profiles.map((p) =>
+        p.id === activeProfileId ? { ...p, mbti } : p,
+      );
+      set({ profiles: updated });
+      await persistProfiles(updated, activeProfileId);
+    }
+  },
+
+  loadUserMbti: async () => {
+    try {
+      // 활성 프로필의 MBTI 로드
+      const { profiles, activeProfileId } = get();
+      const profile = profiles.find((p) => p.id === activeProfileId);
+      if (profile?.mbti) {
+        set({ userMbti: profile.mbti });
+        return;
+      }
+      // 레거시: 전역 MBTI 키에서 마이그레이션
+      const mbti = await AsyncStorage.getItem(MBTI_KEY);
+      if (mbti) {
+        set({ userMbti: mbti });
+        // 활성 프로필에 마이그레이션
+        if (activeProfileId) {
+          const updated = profiles.map((p) =>
+            p.id === activeProfileId ? { ...p, mbti } : p,
+          );
+          set({ profiles: updated });
+          await persistProfiles(updated, activeProfileId);
+          await AsyncStorage.removeItem(MBTI_KEY);
+        }
+      } else {
+        set({ userMbti: null });
+      }
+    } catch (e) {
+      console.error('Failed to load MBTI:', e);
+    }
+  },
 }));

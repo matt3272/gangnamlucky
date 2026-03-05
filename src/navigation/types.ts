@@ -29,9 +29,18 @@ export type RootStackParamList = {
     color1?: string;
     color2?: string;
   };
+  FortuneDetail: undefined;
   FaceReading: undefined;
   NewYearFortune: undefined;
+  Tarot: undefined;
+  TarotReading: {
+    category: string;
+    label: string;
+    count: number;
+    positions: string[];
+  };
   Compatibility: undefined;
+  Mbti: undefined;
   History: undefined;
   ProfileList: undefined;
 };

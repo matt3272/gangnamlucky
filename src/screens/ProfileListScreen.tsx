@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, Text as RNText } from 'react-native';
 import { Card, Text } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -10,6 +10,30 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSajuStore, ProfileEntry } from '../store/useSajuStore';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+class ProfileErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; errorMsg: string }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, errorMsg: '' };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, errorMsg: error?.message ?? String(error) };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#F2F2F7' }}>
+          <RNText style={{ fontSize: 16, fontWeight: '700', color: '#FF3B30', marginBottom: 12 }}>오류 발생</RNText>
+          <RNText style={{ fontSize: 13, color: '#8E8E93', textAlign: 'center' }}>{this.state.errorMsg}</RNText>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const ELEMENT_COLORS: Record<string, string> = {
   '목': Colors.wood,
@@ -32,11 +56,11 @@ const PROFILE_COLORS = [
 
 function getProfileColor(profile: ProfileEntry): string {
   if (profile.color) return profile.color;
-  const element = profile.sajuData.pillars.day.element;
-  return ELEMENT_COLORS[element] || Colors.primary;
+  const element = profile.sajuData?.pillars?.day?.element;
+  return (element && ELEMENT_COLORS[element]) || Colors.primary;
 }
 
-export default function ProfileListScreen() {
+function ProfileListContent() {
   const navigation = useNavigation<NavigationProp>();
   const { profiles, activeProfileId, setActiveProfile, removeProfile, loadProfiles, updateProfileColor } = useSajuStore();
   const [colorPickerTarget, setColorPickerTarget] = useState<string | null>(null);
@@ -51,7 +75,7 @@ export default function ProfileListScreen() {
     await setActiveProfile(id);
   };
 
-  const handleDelete = (id: string, name: string) => {
+  const handleDelete = (id: string, name: string = '이름없음') => {
     Alert.alert(
       '프로필 삭제',
       `"${name}" 프로필을 삭제하시겠습니까?`,
@@ -74,7 +98,8 @@ export default function ProfileListScreen() {
   };
 
   const formatBirth = (profile: typeof profiles[0]) => {
-    const { birthInfo } = profile;
+    const birthInfo = profile?.birthInfo;
+    if (!birthInfo) return '';
     const cal = birthInfo.calendarType === 'solar' ? '양력' : '음력';
     return `${cal} ${birthInfo.year}.${String(birthInfo.month).padStart(2, '0')}.${String(birthInfo.day).padStart(2, '0')}`;
   };
@@ -101,13 +126,13 @@ export default function ProfileListScreen() {
                     >
                       <View style={[styles.avatar, { backgroundColor: color + '18' }]}>
                         <Text style={[styles.avatarText, { color }]}>
-                          {profile.sajuData.name.charAt(0)}
+                          {(profile.sajuData?.name ?? '?').charAt(0)}
                         </Text>
                       </View>
                     </TouchableOpacity>
                     <View style={styles.info}>
                       <View style={styles.nameRow}>
-                        <Text style={styles.name}>{profile.sajuData.name}</Text>
+                        <Text style={styles.name}>{profile.sajuData?.name ?? '이름없음'}</Text>
                         {isActive && (
                           <View style={styles.activeBadge}>
                             <Text style={styles.activeBadgeText}>현재</Text>
@@ -161,7 +186,8 @@ export default function ProfileListScreen() {
       </ScrollView>
 
       {/* Color Picker Modal */}
-      <Modal visible={colorPickerTarget !== null} transparent animationType="fade">
+      {colorPickerTarget !== null && (
+      <Modal visible transparent animationType="fade">
         <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
@@ -195,7 +221,16 @@ export default function ProfileListScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+      )}
     </>
+  );
+}
+
+export default function ProfileListScreen() {
+  return (
+    <ProfileErrorBoundary>
+      <ProfileListContent />
+    </ProfileErrorBoundary>
   );
 }
 

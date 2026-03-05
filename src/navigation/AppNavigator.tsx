@@ -28,8 +28,12 @@ import WeeklyFortuneScreen from '../screens/WeeklyFortuneScreen';
 import FortuneAnalysisScreen from '../screens/FortuneAnalysisScreen';
 import ProfileListScreen from '../screens/ProfileListScreen';
 import CompatibilityResultScreen from '../screens/CompatibilityResultScreen';
+import FortuneDetailScreen from '../screens/FortuneDetailScreen';
 import FaceReadingScreen from '../screens/FaceReadingScreen';
 import NewYearFortuneScreen from '../screens/NewYearFortuneScreen';
+import TarotScreen from '../screens/TarotScreen';
+import TarotReadingScreen from '../screens/TarotReadingScreen';
+import MbtiScreen from '../screens/MbtiScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -98,6 +102,7 @@ function MainTabs() {
         component={ConsultScreen}
         options={{
           title: '상담',
+          headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'chatbubble' : 'chatbubble-outline'} size={22} color={color} />
           ),
@@ -184,6 +189,11 @@ export default function AppNavigator() {
           options={{ title: 'AI 운세 분석' }}
         />
         <Stack.Screen
+          name="FortuneDetail"
+          component={FortuneDetailScreen}
+          options={{ title: '카테고리별 운세' }}
+        />
+        <Stack.Screen
           name="FaceReading"
           component={FaceReadingScreen}
           options={{ title: '관상 분석' }}
@@ -192,6 +202,16 @@ export default function AppNavigator() {
           name="NewYearFortune"
           component={NewYearFortuneScreen}
           options={{ title: '2026 신년운' }}
+        />
+        <Stack.Screen
+          name="Tarot"
+          component={TarotScreen}
+          options={{ title: '타로' }}
+        />
+        <Stack.Screen
+          name="TarotReading"
+          component={TarotReadingScreen}
+          options={({ route }) => ({ title: route.params.label })}
         />
         <Stack.Screen
           name="Compatibility"
@@ -207,6 +227,11 @@ export default function AppNavigator() {
           name="History"
           component={HistoryScreen}
           options={{ title: '상담 기록' }}
+        />
+        <Stack.Screen
+          name="Mbti"
+          component={MbtiScreen}
+          options={{ title: 'MBTI' }}
         />
         <Stack.Screen
           name="ProfileList"

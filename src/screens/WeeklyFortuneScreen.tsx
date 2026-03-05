@@ -180,7 +180,7 @@ function RadarChart({ fortune }: { fortune: DayFortune }) {
 
         {/* Data dots — each category color */}
         {dataPoints.map((p, i) => (
-          <Circle key={i} cx={p.x} cy={p.y} r={4} fill={Colors.white} stroke={CAT_COLORS[CATEGORY_LIST[i].key]} strokeWidth={2} />
+          <Circle key={i} cx={p.x} cy={p.y} r={4} fill={Colors.white} stroke="#007AFF" strokeWidth={2} />
         ))}
       </Svg>
 
@@ -188,11 +188,10 @@ function RadarChart({ fortune }: { fortune: DayFortune }) {
       {CATEGORY_LIST.map((cat, i) => {
         const p = getHexPoint(i, RADAR_RADIUS + 24);
         const score = fortune[cat.key];
-        const color = CAT_COLORS[cat.key];
         return (
           <View key={cat.key} style={[radarStyles.labelWrap, { left: p.x - 28, top: p.y - 18 }]}>
             <Text style={radarStyles.labelText}>{cat.label}</Text>
-            <Text style={[radarStyles.labelScore, { color }]}>{score}</Text>
+            <Text style={radarStyles.labelScore}>{score}</Text>
           </View>
         );
       })}
@@ -204,41 +203,16 @@ const radarStyles = StyleSheet.create({
   container: { position: 'relative', alignItems: 'center' },
   labelWrap: { position: 'absolute', width: 56, alignItems: 'center' },
   labelText: { fontSize: 11, color: Colors.textSecondary, fontWeight: '500' },
-  labelScore: { fontSize: 13, fontWeight: '700' },
+  labelScore: { fontSize: 13, fontWeight: '700', color: '#007AFF' },
 });
 
-function CategoryBars({ fortune }: { fortune: DayFortune }) {
-  return (
-    <View style={barStyles.container}>
-      {CATEGORY_LIST.map((cat) => {
-        const score = fortune[cat.key];
-        const color = CAT_COLORS[cat.key];
-        return (
-          <View key={cat.key} style={barStyles.item}>
-            <View style={barStyles.row}>
-              <Text style={barStyles.icon}>{cat.icon}</Text>
-              <Text style={barStyles.label}>{cat.label}</Text>
-              <Text style={[barStyles.score, { color }]}>{score}</Text>
-            </View>
-            <View style={barStyles.trackBg}>
-              <View style={[barStyles.trackFill, { width: `${score}%`, backgroundColor: color }]} />
-            </View>
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
 const barStyles = StyleSheet.create({
-  container: { gap: 16 },
-  item: { gap: 6 },
+  container: { gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center' },
-  icon: { fontSize: 16, width: 22, textAlign: 'center' },
-  label: { fontSize: 13, fontWeight: '600', color: Colors.text, flex: 1 },
-  trackBg: { height: 8, borderRadius: 4, backgroundColor: Colors.surfaceLight, overflow: 'hidden' },
-  trackFill: { height: '100%', borderRadius: 4 },
-  score: { fontSize: 14, fontWeight: '700' },
+  label: { fontSize: 13, fontWeight: '500', color: Colors.textSecondary, width: 48 },
+  track: { flex: 1, height: 6, borderRadius: 3, backgroundColor: Colors.surfaceLight, overflow: 'hidden', marginHorizontal: 10 },
+  fill: { height: '100%', borderRadius: 3 },
+  score: { fontSize: 13, fontWeight: '700', width: 28, textAlign: 'right' },
 });
 
 function FortuneChart({ fortunes }: { fortunes: DayFortune[] }) {
@@ -398,6 +372,9 @@ export default function WeeklyFortuneScreen() {
       <View style={styles.content}>
         <Card style={styles.card}>
           <Card.Content>
+            <Text style={styles.sajuBasis}>
+              {profile.sajuData.name}님의 사주 데이터를 바탕으로 분석한 결과입니다
+            </Text>
             <Text variant="titleMedium" style={styles.sectionTitle}>주간 종합운 추이</Text>
             <View style={styles.chartWrap}>
               <FortuneChart fortunes={weekFortunes} />
@@ -412,16 +389,29 @@ export default function WeeklyFortuneScreen() {
             </View>
             <RadarChart fortune={todayFortune} />
             <View style={styles.divider} />
-            <CategoryBars fortune={todayFortune} />
+            <View style={barStyles.container}>
+              {CATEGORY_LIST.map((cat) => {
+                const score = todayFortune[cat.key];
+                const barColor = score > 60 ? Colors.success : score >= 20 ? Colors.warning : Colors.error;
+                return (
+                  <View key={cat.key} style={barStyles.row}>
+                    <Text style={barStyles.label}>{cat.label}</Text>
+                    <View style={barStyles.track}>
+                      <View style={[barStyles.fill, { width: `${Math.max(4, score)}%`, backgroundColor: barColor }]} />
+                    </View>
+                    <Text style={[barStyles.score, { color: barColor }]}>{score}</Text>
+                  </View>
+                );
+              })}
+            </View>
             <Button
               mode="contained"
               onPress={() => navigation.navigate('FortuneAnalysis', { sajuData: profile.sajuData, fortune: todayFortune })}
               style={styles.analyzeBtn}
               buttonColor={Colors.primary}
               textColor={Colors.white}
-              icon="sparkles"
             >
-              AI 운세 분석하기
+              오늘의 운세 분석하기
             </Button>
           </Card.Content>
         </Card>
@@ -496,5 +486,11 @@ const styles = StyleSheet.create({
   analyzeBtn: {
     marginTop: spacing.lg,
     borderRadius: 12,
+  },
+  sajuBasis: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginBottom: spacing.md,
   },
 });
